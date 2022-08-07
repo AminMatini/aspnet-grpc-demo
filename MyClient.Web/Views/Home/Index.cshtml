@@ -1,0 +1,12 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Hello gRPC !</h1>
+</div>
+
+
+<h2>Response Message : @(ViewBag.ResponseMessage != null ? ViewBag.ResponseMessage : "")</h2>
+<hr/>
+<h2>Error Message : @(ViewBag.ErrorMessage != null ? ViewBag.ErrorMessage : "")</h2>
