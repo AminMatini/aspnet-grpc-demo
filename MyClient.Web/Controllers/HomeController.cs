@@ -29,7 +29,7 @@ namespace MyClient.Web.Controllers
 
             try
             {
-                var reply = await client.SayHelloAsync(new HelloRequest { Name = "Hello To gRPC From Asp.Net Core" } 
+                var reply = await client.SayHelloAsync(new HelloRequest { Name = "Asp.Net Core" } 
                 , new CallOptions(null , DateTime.UtcNow.AddSeconds(10)));
 
                 ViewBag.ResponseMessage = reply.Message;
