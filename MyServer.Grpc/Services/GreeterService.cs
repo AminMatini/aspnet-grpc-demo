@@ -12,7 +12,7 @@ namespace MyServer.Grpc.Services
 
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
-            Task.Delay(7000);
+            Task.Delay(100000);
 
             return Task.FromResult(new HelloReply
             {

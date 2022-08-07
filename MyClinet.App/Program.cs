@@ -1,47 +1,36 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
 using MyServer.Grpc;
-
-Console.ForegroundColor = ConsoleColor.White;
+using Polly;
 
 Console.WriteLine("Hello, Grpc Demo! \n");
 
 using var channel = GrpcChannel.ForAddress("https://localhost:7126");
-
 var client = new Greeter.GreeterClient(channel);
 
-var grpcHeaderMetadata = new Metadata();
-grpcHeaderMetadata.Add("founder", "amin matini");
-grpcHeaderMetadata.Add("co-funder", "amin matini");
-grpcHeaderMetadata.Add("autor", "amin matini");
-grpcHeaderMetadata.Add("developer", "amin matini");
+#region Poly Config
 
-var grpcOptions = new CallOptions(grpcHeaderMetadata , DateTime.UtcNow.AddSeconds(5));
+var maxRetryAttempts = 10;
+var pauseBetweenFailures = TimeSpan.FromSeconds(3);
 
-var source = new CancellationTokenSource();
-var token = source.Token;
+var retryPolicy = Policy.Handle<RpcException>()
+  .WaitAndRetryAsync(maxRetryAttempts, i => pauseBetweenFailures, (ex, pause) => {
+      Console.ForegroundColor = ConsoleColor.Yellow;
+      Console.WriteLine(ex.Message + " => " + pause.TotalSeconds);
+  });
 
-try
+await retryPolicy.ExecuteAsync(async () =>
 {
-    //source.CancelAfter(1);
-
-    var reply = await client.SayHelloAsync(new HelloRequest { Name = "Amin Matini" }, grpcHeaderMetadata , 
-        DateTime.UtcNow.AddSeconds(2) , token);
+    var reply = await client.SayHelloAsync(new HelloRequest { Name = "Amin Matini" },
+        new CallOptions(null,DateTime.UtcNow.AddSeconds(1)));
 
     Console.ForegroundColor = ConsoleColor.Blue;
     Console.WriteLine("reply message : \n");
 
     Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine(reply.Message);
-}
-catch(RpcException ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine(ex.Message);
-}
 
+});
 
-
-
-Console.ForegroundColor = ConsoleColor.White;
+#endregion
 
