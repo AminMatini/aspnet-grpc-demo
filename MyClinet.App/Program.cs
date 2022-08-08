@@ -14,38 +14,34 @@ using var channel = GrpcChannel.ForAddress("https://localhost:7126");
 var client = new FileProtoServiceClient(channel);
 
 Console.WriteLine("Sending ... ");
-await SendFile(client , @"D:\storm.jpg");
+await SendFileStream(client , @"D:\storm.jpg");
 Console.WriteLine("Finish !");
 
-static async Task SendFile(FileProtoServiceClient client , string path)
+static async Task SendFileStream(FileProtoServiceClient client , string path)
 {
-    byte[] buffer;
-
-    FileStream fileStream = new FileStream(path , FileMode.Open , FileAccess.Read);
+    using Stream source = File.OpenRead(path);
+    using var call = client.SendFileStream();
+    byte[] buffer = new byte[2048];
+    int bytesRead;
+    int c = 0;
 
     try
     {
-        int length = (int)fileStream.Length;
-        buffer = new byte[length];
-        int count;
-        int sum = 0;
 
-        while ((count = await fileStream.ReadAsync(buffer , sum , length - sum)) > 0)
-            sum += count;
-        client.SendFile(new Chunk { Content = ByteString.CopyFrom(buffer) });
+        while ((bytesRead = source.Read(buffer , 0 , buffer.Length)) > 0)
+        {
+            await call.RequestStream.WriteAsync(new Chunk { Content = ByteString.CopyFrom(buffer) });
+            Console.WriteLine(c++);
+        }
+
+        await Task.Delay(1000);
+        await call.RequestStream.CompleteAsync();
 
     }
     catch(RpcException ex)
     {
         Console.WriteLine(ex.Message);
     }
-    finally
-    {
-        fileStream.Close();
-    }
-
-    
-
 };
 
 

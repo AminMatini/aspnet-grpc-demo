@@ -17,18 +17,30 @@ namespace MyServer.Grpc.Services
 
         #endregion
 
-        public override async Task<SendResult> SendFile(
-            Chunk request,
-            ServerCallContext context)
+        public override async Task<SendResult> SendFileStream(IAsyncStreamReader<Chunk> requestStream, ServerCallContext context)
         {
-            var content = request.Content.ToArray();
+            var fileName = _webHostEnvironment.ContentRootPath + "/Files/" + "store.jpg";
+            using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            int c = 0;
 
-            await File.WriteAllBytesAsync(
-                _webHostEnvironment.ContentRootPath + "/Files/" + "store.jpg",
-                content
-                );
+            try
+            {
+                await foreach(var chunk in requestStream.ReadAllAsync())
+                {
+                    fs.Write(chunk.Content.ToArray(), 0, chunk.Content.Length);
+                    Console.WriteLine(c++);
+                };
+            }
+            catch(RpcException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                fs.Close();
+            }
 
-            return new SendResult { Success = true};
+            return new SendResult { Success = true };
         }
     }
 }

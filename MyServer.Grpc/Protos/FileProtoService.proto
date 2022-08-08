@@ -3,7 +3,7 @@
 option csharp_namespace = "MyServer";
 
 service FileProtoService{
-	rpc SendFile(Chunk) returns(SendResult);
+	rpc SendFileStream(stream Chunk) returns(SendResult);
 }
 
 message Chunk{
