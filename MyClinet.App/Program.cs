@@ -20,22 +20,32 @@ Console.WriteLine("Finish !");
 static async Task SendFileStream(FileProtoServiceClient client , string path)
 {
     using Stream source = File.OpenRead(path);
-    using var call = client.SendFileStream();
-    byte[] buffer = new byte[2048];
+    using var call = client.SendFileStreamProgress();
+    var size = source.Length / 100;
+    byte[] buffer = new byte[size];
     int bytesRead;
-    int c = 0;
 
     try
     {
 
-        while ((bytesRead = source.Read(buffer , 0 , buffer.Length)) > 0)
+        var task1 = Task.Run(async () =>
         {
-            await call.RequestStream.WriteAsync(new Chunk { Content = ByteString.CopyFrom(buffer) });
-            Console.WriteLine(c++);
-        }
+            while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                await call.RequestStream.WriteAsync(new Chunk { Content = ByteString.CopyFrom(buffer) });
+                await Task.Delay(100);
+            }
+        });
 
-        await Task.Delay(1000);
-        await call.RequestStream.CompleteAsync();
+        var task2 = Task.Run(async () =>
+        {
+            await foreach(var number in call.ResponseStream.ReadAllAsync())
+            {
+                Console.WriteLine($"Progress : {number.Percent} %");
+            }
+        });
+
+        await Task.WhenAll(task1, task2);
 
     }
     catch(RpcException ex)

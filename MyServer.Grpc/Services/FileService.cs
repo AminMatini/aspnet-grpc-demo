@@ -17,21 +17,27 @@ namespace MyServer.Grpc.Services
 
         #endregion
 
-        public override async Task<SendResult> SendFileStream(IAsyncStreamReader<Chunk> requestStream, ServerCallContext context)
+        public override async Task SendFileStreamProgress(
+            IAsyncStreamReader<Chunk> requestStream,
+            IServerStreamWriter<Progress> responseStream,
+            ServerCallContext context)
         {
             var fileName = _webHostEnvironment.ContentRootPath + "/Files/" + "store.jpg";
             using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
-            int c = 0;
+            int percent = 0;
 
             try
             {
-                await foreach(var chunk in requestStream.ReadAllAsync())
+                await foreach (var chunk in requestStream.ReadAllAsync())
                 {
                     fs.Write(chunk.Content.ToArray(), 0, chunk.Content.Length);
-                    Console.WriteLine(c++);
+
+                    var response = new Progress { Percent = percent++};
+
+                    await responseStream.WriteAsync(response);
                 };
             }
-            catch(RpcException ex)
+            catch (RpcException ex)
             {
                 Console.WriteLine(ex.Message);
             }
@@ -39,8 +45,6 @@ namespace MyServer.Grpc.Services
             {
                 fs.Close();
             }
-
-            return new SendResult { Success = true };
         }
     }
 }

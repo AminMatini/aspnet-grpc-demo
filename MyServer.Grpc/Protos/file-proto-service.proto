@@ -1,0 +1,15 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyServer";
+
+service FileProtoService{
+	rpc SendFileStreamProgress(stream Chunk) returns(stream Progress);
+}
+
+message Chunk{
+	bytes content = 1;
+}
+
+message Progress{
+	int32 percent = 1;
+}
