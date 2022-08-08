@@ -1,44 +1,53 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
-using MyServer.Grpc;
+using MyServer;
+using static MyServer.Numeric;
 
 Console.ForegroundColor = ConsoleColor.White;
 
 Console.WriteLine("Hello, Grpc Demo! \n");
 
 using var channel = GrpcChannel.ForAddress("https://localhost:7126");
+var client = new Numeric.NumericClient(channel);
 
-var client = new Greeter.GreeterClient(channel);
+await StreamNumberFromClientToServer(client);
 
-var grpcHeaderMetadata = new Metadata();
-grpcHeaderMetadata.Add("founder", "amin matini");
-grpcHeaderMetadata.Add("co-funder", "amin matini");
-grpcHeaderMetadata.Add("autor", "amin matini");
-grpcHeaderMetadata.Add("developer", "amin matini");
-
-var grpcOptions = new CallOptions(grpcHeaderMetadata , DateTime.UtcNow.AddSeconds(5));
-
-var source = new CancellationTokenSource();
-var token = source.Token;
-
-try
+static async Task StreamNumberFromClientToServer(NumericClient client)
 {
-    //source.CancelAfter(1);
+    using var call = client.BidirectionalStreamingNumber();
 
-    var reply = await client.SayHelloAsync(new HelloRequest { Name = "Amin Matini" }, grpcHeaderMetadata , 
-        DateTime.UtcNow.AddSeconds(2) , token);
+    #region guidance
 
-    Console.ForegroundColor = ConsoleColor.Blue;
-    Console.WriteLine("reply message : \n");
+    // ارسال دیتا در وظیفه شماره یک به سمت سرور به صورت استریم جهت پردازش
+    // در وظیفه شماره دو دریافت دیتای پردازش شده از سرور به صورت استریم
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine(reply.Message);
+    #endregion
+
+    var task1 = Task.Run(async () =>
+    {
+        for (var i = 0; i <= 100; i++)
+        {
+            var number = new Random().Next(10);
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Sending : {number}");
+
+            await call.RequestStream.WriteAsync(new NumberRequest() { Value = number });
+
+            await Task.Delay(new Random().Next(10) * 100);
+
+        }
+    });
+
+    var task2 = Task.Run(async () =>
+    {
+        await foreach(var data in call.ResponseStream.ReadAllAsync())
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Received[{data.Index}] by Power: {Math.Sqrt(data.Result)} -> {data.Result}");
+        };
+    });
+
+    Console.ForegroundColor = ConsoleColor.White;
+    await Task.WhenAll(task1 , task2);
 }
-catch(RpcException ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine(ex.Message);
-}
-
-Console.ForegroundColor = ConsoleColor.White;
-
