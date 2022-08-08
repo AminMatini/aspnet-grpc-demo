@@ -1,0 +1,22 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyServer";
+
+package scalar;
+
+service Numerics{
+	rpc SendNumberFromClientToServer(stream NumberRequest) returns (NumberResponse);
+}
+
+message NumberRequest{
+	int32 value = 1;
+}
+
+message NumberResponse{
+	int32 result = 1;
+}
+
+
+
+
+
