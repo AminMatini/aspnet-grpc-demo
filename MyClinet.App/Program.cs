@@ -1,6 +1,9 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf;
+using Grpc.Core;
 using Grpc.Net.Client;
+using MyServer;
 using MyServer.Grpc;
+using static MyServer.FileProtoService;
 
 Console.ForegroundColor = ConsoleColor.White;
 
@@ -8,37 +11,41 @@ Console.WriteLine("Hello, Grpc Demo! \n");
 
 using var channel = GrpcChannel.ForAddress("https://localhost:7126");
 
-var client = new Greeter.GreeterClient(channel);
+var client = new FileProtoServiceClient(channel);
 
-var grpcHeaderMetadata = new Metadata();
-grpcHeaderMetadata.Add("founder", "amin matini");
-grpcHeaderMetadata.Add("co-funder", "amin matini");
-grpcHeaderMetadata.Add("autor", "amin matini");
-grpcHeaderMetadata.Add("developer", "amin matini");
+Console.WriteLine("Sending ... ");
+await SendFile(client , @"D:\storm.jpg");
+Console.WriteLine("Finish !");
 
-var grpcOptions = new CallOptions(grpcHeaderMetadata , DateTime.UtcNow.AddSeconds(5));
-
-var source = new CancellationTokenSource();
-var token = source.Token;
-
-try
+static async Task SendFile(FileProtoServiceClient client , string path)
 {
-    //source.CancelAfter(1);
+    byte[] buffer;
 
-    var reply = await client.SayHelloAsync(new HelloRequest { Name = "Amin Matini" }, grpcHeaderMetadata , 
-        DateTime.UtcNow.AddSeconds(2) , token);
+    FileStream fileStream = new FileStream(path , FileMode.Open , FileAccess.Read);
 
-    Console.ForegroundColor = ConsoleColor.Blue;
-    Console.WriteLine("reply message : \n");
+    try
+    {
+        int length = (int)fileStream.Length;
+        buffer = new byte[length];
+        int count;
+        int sum = 0;
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine(reply.Message);
-}
-catch(RpcException ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine(ex.Message);
-}
+        while ((count = await fileStream.ReadAsync(buffer , sum , length - sum)) > 0)
+            sum += count;
+        client.SendFile(new Chunk { Content = ByteString.CopyFrom(buffer) });
 
-Console.ForegroundColor = ConsoleColor.White;
+    }
+    catch(RpcException ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        fileStream.Close();
+    }
+
+    
+
+};
+
 

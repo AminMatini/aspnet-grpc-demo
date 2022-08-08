@@ -1,0 +1,15 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "MyServer";
+
+service FileProtoService{
+	rpc SendFile(Chunk) returns(SendResult);
+}
+
+message Chunk{
+	bytes Content = 1;
+}
+
+message SendResult{
+	bool Success = 1;
+}
