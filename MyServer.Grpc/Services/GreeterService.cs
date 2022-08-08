@@ -19,5 +19,20 @@ namespace MyServer.Grpc.Services
                 Message = "Hello " + request.Name
             });
         }
+
+        public override async Task<HelloReplyList> SayHelloList(HelloRequest request, ServerCallContext context)
+        {
+            var res = new HelloReplyList();
+
+            await Task.Delay(1000);
+
+            for(var i = 0; i < 10; i++)
+            {
+                res.List.Add("hello amin matini => " + i.ToString());
+            };
+
+            return res;
+
+        }
     }
 }
