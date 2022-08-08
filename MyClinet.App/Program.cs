@@ -40,8 +40,5 @@ catch(RpcException ex)
     Console.WriteLine(ex.Message);
 }
 
-
-
-
 Console.ForegroundColor = ConsoleColor.White;
 
